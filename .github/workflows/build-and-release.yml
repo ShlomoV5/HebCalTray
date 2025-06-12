@@ -1,0 +1,68 @@
+
+
+
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore HebTray.sln
+
+    - name: Build solution
+      run: msbuild HebTray.sln /p:Configuration=Release
+
+    - name: Copy output
+      run: |
+        $exe = Get-ChildItem -Path . -Recurse -Filter *.exe | Where-Object { $_.FullName -like "*\bin\Release\*.exe" }
+        if ($exe) {
+          New-Item -ItemType Directory -Path output
+          Copy-Item $exe.FullName -Destination output
+        } else {
+          Write-Error "No .exe found"
+        }
+      shell: pwsh
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: HebTray-exe
+        path: output
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: HebTray-exe
+        path: ./release
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: HebTray Release ${{ github.run_number }}
+        files: ./release/*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
