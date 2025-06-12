@@ -27,8 +27,14 @@ jobs:
 
     - name: Copy output
       run: |
-        mkdir output
-        Copy-Item -Recurse -Path "**\\bin\\Release\\*.exe" -Destination output
+        $exe = Get-ChildItem -Path . -Recurse -Filter *.exe | Where-Object { $_.FullName -like "*\bin\Release\*.exe" }
+        if ($exe) {
+          New-Item -ItemType Directory -Path output
+          Copy-Item $exe.FullName -Destination output
+        } else {
+          Write-Error "No .exe found"
+        }
+      shell: pwsh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
