@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore HebTray.sln
+
+    - name: Build solution
+      run: msbuild HebTray.sln /p:Configuration=Release
+
+    - name: Copy output
+      run: |
+        mkdir output
+        Copy-Item -Recurse -Path "**\\bin\\Release\\*.exe" -Destination output
+
+    - name: Upload artifact
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: HebTray-exe
+        path: output
+
+  release:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: HebTray-exe
+        path: ./release
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ github.run_number }}
+        name: HebTray Release ${{ github.run_number }}
+        files: ./release/*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
