@@ -2,11 +2,20 @@
 Imports System.Windows.Forms
 
 Public Class Form1
+    ' Region: Private Member Variables
+    ' These variables store the state and components of the form and calendar.
     Private trayIcon As NotifyIcon
     Private contextMenu1 As ContextMenuStrip
     Private currentHebrewYear As Integer
     Private currentHebrewMonth As Integer ' 1-based, Tishrei=1
     Private dayToolTips As ToolTip
+    Private holidayMap As New Dictionary(Of Date, List(Of String))
+    Private lastComputedYear As Integer = -1
+
+    ' End Region
+
+    ' Region: Form Event Handlers
+    ' These methods handle standard Windows Form events.
     Protected Overrides Sub WndProc(ByRef m As Message)
         Const WM_NCLBUTTONDOWN As Integer = &HA1
         Const HTCAPTION As Integer = 2
@@ -19,36 +28,16 @@ Public Class Form1
         MyBase.WndProc(m)
     End Sub
 
-    Private Sub ShowCalendar(sender As Object, e As EventArgs)
-        ' Position the form above the mouse (can later align to tray icon)
-        Dim mousePos = Cursor.Position
-        Me.Location = New Point(mousePos.X - Me.Width \ 2, mousePos.Y - Me.Height - 10)
-        Me.Show()
-        Me.BringToFront()
-    End Sub
-
-    Private Sub ExitApp(sender As Object, e As EventArgs)
-        trayIcon.Visible = False
-        Application.Exit()
-    End Sub
-
-    Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
-        If e.CloseReason = CloseReason.UserClosing Then
-            e.Cancel = True
-            Me.Hide()
-        Else
-            MyBase.OnFormClosing(e)
-        End If
-    End Sub
-
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' Initialize ToolTip for calendar days
         dayToolTips = New ToolTip() With {
-        .AutoPopDelay = 5000,
-        .InitialDelay = 500,
-        .ReshowDelay = 200,
-        .ShowAlways = True
+            .AutoPopDelay = 5000,
+            .InitialDelay = 500,
+            .ReshowDelay = 200,
+            .ShowAlways = True
         }
 
+        ' Configure form appearance and behavior
         Me.ShowInTaskbar = False
         Me.FormBorderStyle = FormBorderStyle.FixedToolWindow ' shows X, no minimize/maximize
         Me.ControlBox = True
@@ -59,16 +48,16 @@ Public Class Form1
 
         ' Set up tray icon
         trayIcon = New NotifyIcon()
-        trayIcon.Icon = SystemIcons.Information
+        trayIcon.Icon = SystemIcons.Information ' Consider using a custom icon if available
         trayIcon.Visible = True
 
-        ' Context menu
+        ' Set up context menu for tray icon
         contextMenu1 = New ContextMenuStrip()
         contextMenu1.Items.Add("הצג לוח", Nothing, AddressOf ShowCalendar)
         contextMenu1.Items.Add("יציאה", Nothing, AddressOf ExitApp)
         trayIcon.ContextMenuStrip = contextMenu1
 
-        ' Set Hebrew tooltip
+        ' Initialize Hebrew calendar state and update tray icon tooltip
         Dim hc As New HebrewCalendar()
         Dim today = Date.Today
 
@@ -77,28 +66,91 @@ Public Class Form1
         Dim hDay = hc.GetDayOfMonth(today)
 
         Dim hebrewDate = $"{IntToHebrewDay(hDay)} {GetHebrewMonthName(hMonth, hYear)} {IntToHebrewYear(hYear)}"
-        trayIcon.Text = $"היום: {hebrewDate}".Substring(0, Math.Min(63, $"היום: {hebrewDate}".Length))
+        trayIcon.Text = $"היום: {hebrewDate}".Substring(0, Math.Min(63, $"היום: {hebrewDate}".Length)) ' Tray icon text limit
 
-        ' Init calendar state
+        ' Set initial calendar view to today
         currentHebrewYear = hYear
         currentHebrewMonth = hMonth
 
-        DrawCalendar(0)
+        ' Draw the calendar (called twice in original, one is sufficient for initial load)
         DrawCalendar(0)
     End Sub
 
+    Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
+        ' Intercept user closing to hide the form instead of exiting
+        If e.CloseReason = CloseReason.UserClosing Then
+            e.Cancel = True
+            Me.Hide()
+        Else
+            MyBase.OnFormClosing(e)
+        End If
+    End Sub
+    ' End Region
+
+    ' Region: UI Interaction Handlers
+    ' These methods respond to user interactions with the form controls.
+    Private Sub ShowCalendar(sender As Object, e As EventArgs)
+        ' Position the form above the mouse (can later align to tray icon)
+        Dim mousePos = Cursor.Position
+        Me.Location = New Point(mousePos.X - Me.Width \ 2, mousePos.Y - Me.Height - 10)
+        Me.Show()
+        Me.BringToFront()
+    End Sub
+
+    Private Sub ExitApp(sender As Object, e As EventArgs)
+        ' Clean up tray icon and exit the application
+        trayIcon.Visible = False
+        Application.Exit()
+    End Sub
+
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        ' Handle click for next month button
         DrawCalendar(1)
     End Sub
 
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        ' Handle click for previous month button
         DrawCalendar(-1)
     End Sub
 
+    Private Sub Button3_Click_1(sender As Object, e As EventArgs) Handles Button3.Click
+        ' Handle click for "Today" button
+        Dim hc As New HebrewCalendar()
+        Dim today = Date.Today
+        currentHebrewYear = hc.GetYear(today)
+        currentHebrewMonth = hc.GetMonth(today)
+        DrawCalendar(0)
+    End Sub
+
+    Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
+        ' Open month picker dialog when the month/year label is clicked
+        Dim picker As New FormMonthPicker(currentHebrewYear, currentHebrewMonth)
+        AddHandler picker.MonthSelected, AddressOf SetSelectedMonth
+        picker.Location = Cursor.Position
+        picker.Show()
+    End Sub
+
+    Private Sub SetSelectedMonth(year As Integer, month As Integer)
+        ' Callback from month picker to set the selected month and redraw
+        currentHebrewYear = year
+        currentHebrewMonth = month
+        DrawCalendar(0)
+    End Sub
+    ' End Region
+
+    ' Region: Calendar Drawing and Logic
+    ' These methods are responsible for rendering the Hebrew calendar and managing its state.
     Private Sub DrawCalendar(Optional monthOffset As Integer = 0)
         Dim hc As New HebrewCalendar()
 
-        ' Adjust month/year with rollover
+        ' Recalculate holidays if the year has changed
+        If currentHebrewYear <> lastComputedYear Then
+            AddHebrewHolidaysForYear(currentHebrewYear)
+            AddModernHoliday(hc, currentHebrewYear) ' Call this method here
+            lastComputedYear = currentHebrewYear
+        End If
+
+        ' Adjust month/year with rollover logic
         currentHebrewMonth += monthOffset
         Do While True
             Dim isLeap = hc.IsLeapYear(currentHebrewYear)
@@ -121,26 +173,31 @@ Public Class Form1
         Dim firstDay = hc.ToDateTime(currentHebrewYear, currentHebrewMonth, 1, 0, 0, 0, 0)
         Dim startDayOfWeek = CInt(firstDay.DayOfWeek)
 
-        ' Label1 = title
+        ' Update calendar title (Label1)
         Dim monthName = GetHebrewMonthName(currentHebrewMonth, currentHebrewYear)
         Dim yearText = IntToHebrewYear(currentHebrewYear)
         Label1.Text = $"{monthName}, {yearText}"
 
-        ' Fill grid
+        ' Fill calendar grid with days
         For day = 1 To daysInMonth
             Dim gDate = hc.ToDateTime(currentHebrewYear, currentHebrewMonth, day, 0, 0, 0, 0)
             Dim dow = CInt(gDate.DayOfWeek)
             Dim row = (day + startDayOfWeek - 1) \ 7
 
             Dim lbl As New Label With {
-            .Text = IntToHebrewDay(day),
-            .TextAlign = ContentAlignment.MiddleCenter,
-            .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 10, FontStyle.Bold),
-            .Margin = New Padding(1)
-}
-
-            dayToolTips.SetToolTip(lbl, gDate.ToString("dd/MM/yyyy"))
+                .Text = IntToHebrewDay(day),
+                .TextAlign = ContentAlignment.MiddleCenter,
+                .Dock = DockStyle.Fill,
+                .Font = New Font("Segoe UI", 10, FontStyle.Bold),
+                .Margin = New Padding(1)
+            }
+            Dim names = GetHolidayName(gDate)
+            If names.Count > 0 Then
+                lbl.ForeColor = Color.Red
+                dayToolTips.SetToolTip(lbl, $"{gDate:dd/MM/yyyy} - {String.Join(" / ", names)}")
+            Else
+                dayToolTips.SetToolTip(lbl, $"{gDate:dd/MM/yyyy}")
+            End If
 
             ' Highlight today's date
             Dim today As Date = Date.Today
@@ -154,6 +211,7 @@ Public Class Form1
     End Sub
 
     Private Sub ClearCalendarGrid()
+        ' Remove all dynamically added labels from the TableLayoutPanel
         For i = TableLayoutPanel1.Controls.Count - 1 To 0 Step -1
             Dim ctrl = TableLayoutPanel1.Controls(i)
             If TypeOf ctrl Is Label Then
@@ -162,7 +220,10 @@ Public Class Form1
             End If
         Next
     End Sub
+    ' End Region
 
+    ' Region: Hebrew Date Conversion Utilities
+    ' These functions convert integers to Hebrew date representations.
     Private Function GetHebrewMonthName(dotNetMonth As Integer, year As Integer) As String
         Dim isLeap = New HebrewCalendar().IsLeapYear(year)
         Dim monthsRegular = {
@@ -213,7 +274,7 @@ Public Class Form1
             {500, "תק"}, {600, "תר"}, {700, "תש"}, {800, "תת"}, {900, "תתק"}
         }
 
-        ' Handle thousands prefix
+        ' Handle thousands prefix (e.g., ה׳תשפ״ה)
         If year >= 1000 Then
             Dim thousands = year \ 1000
             Dim remainder = year Mod 1000
@@ -221,7 +282,7 @@ Public Class Form1
             Return prefix & IntToHebrewYear(remainder)
         End If
 
-        ' Special: טו / טז
+        ' Special cases: 15 (טו) and 16 (טז)
         If year = 15 Then Return "טו"
         If year = 16 Then Return "טז"
 
@@ -232,28 +293,190 @@ Public Class Form1
         Return map(key) & IntToHebrewYear(year - key)
     End Function
 
-    Private Sub Button3_Click_1(sender As Object, e As EventArgs) Handles Button3.Click
+    Private Function GetHebrewMonthNumber(name As String, isLeap As Boolean) As Integer
+        Dim mapNormal = New Dictionary(Of String, Integer) From {
+            {"תשרי", 1}, {"חשון", 2}, {"כסלו", 3}, {"טבת", 4}, {"שבט", 5},
+            {"אדר", 6}, {"ניסן", 7}, {"אייר", 8}, {"סיון", 9}, {"תמוז", 10},
+            {"אב", 11}, {"אלול", 12}
+        }
+
+        Dim mapLeap = New Dictionary(Of String, Integer) From {
+            {"תשרי", 1}, {"חשון", 2}, {"כסלו", 3}, {"טבת", 4}, {"שבט", 5},
+            {"אדר א", 6}, {"אדר ב", 7}, {"ניסן", 8}, {"אייר", 9}, {"סיון", 10},
+            {"תמוז", 11}, {"אב", 12}, {"אלול", 13}
+        }
+
+        Return If(isLeap, mapLeap(name), mapNormal(name))
+    End Function
+    ' End Region
+
+    ' Region: Holiday Management
+    ' These methods handle the addition and retrieval of Hebrew holidays.
+    Private Sub AddHebrewHolidaysForYear(hYear As Integer)
+        ' Clear previous year's holidays
+        holidayMap.Clear()
+
         Dim hc As New HebrewCalendar()
-        Dim today = Date.Today
-        currentHebrewYear = hc.GetYear(today)
-        currentHebrewMonth = hc.GetMonth(today)
-        DrawCalendar(0)
+        Dim isLeap = hc.IsLeapYear(hYear)
+
+        ' Get Hebrew month numbers for the current year (handling leap year)
+        Dim tishrei = GetHebrewMonthNumber("תשרי", isLeap)
+        Dim cheshvan = GetHebrewMonthNumber("חשון", isLeap)
+        Dim kislev = GetHebrewMonthNumber("כסלו", isLeap)
+        Dim tevet = GetHebrewMonthNumber("טבת", isLeap)
+        Dim shevat = GetHebrewMonthNumber("שבט", isLeap)
+        Dim adar = GetHebrewMonthNumber("אדר", isLeap)
+        Dim adar2 = If(isLeap, GetHebrewMonthNumber("אדר ב", isLeap), adar) ' If not leap, Adar is Adar A
+
+        Dim nisan = GetHebrewMonthNumber("ניסן", isLeap)
+        Dim iyar = GetHebrewMonthNumber("אייר", isLeap)
+        Dim sivan = GetHebrewMonthNumber("סיון", isLeap)
+        Dim tammuz = GetHebrewMonthNumber("תמוז", isLeap)
+        Dim av = GetHebrewMonthNumber("אב", isLeap)
+        Dim elul = GetHebrewMonthNumber("אלול", isLeap)
+
+        ' Pesach and Chol HaMoed
+        AddHoliday(hc.ToDateTime(hYear, nisan, 14, 0, 0, 0, 0), "ערב פסח")
+        AddHoliday(hc.ToDateTime(hYear, nisan, 15, 0, 0, 0, 0), "פסח")
+        For d = 16 To 20 : AddHoliday(hc.ToDateTime(hYear, nisan, d, 0, 0, 0, 0), $"{IntToHebrewDay(d - 15)} חול המועד פסח") : Next
+        AddHoliday(hc.ToDateTime(hYear, nisan, 21, 0, 0, 0, 0), "שביעי של פסח")
+        AddHoliday(hc.ToDateTime(hYear, nisan, 22, 0, 0, 0, 0), "איסרו חג פסח")
+
+        ' Shavuot
+        AddHoliday(hc.ToDateTime(hYear, sivan, 5, 0, 0, 0, 0), "ערב שבועות")
+        AddHoliday(hc.ToDateTime(hYear, sivan, 6, 0, 0, 0, 0), "שבועות")
+        AddHoliday(hc.ToDateTime(hYear, sivan, 7, 0, 0, 0, 0), "איסרו חג שבועות")
+
+        ' Tu BiShvat
+        AddHoliday(hc.ToDateTime(hYear, shevat, 15, 0, 0, 0, 0), "ט״ו בשבט")
+
+        ' Lag BaOmer
+        AddHoliday(hc.ToDateTime(hYear, iyar, 18, 0, 0, 0, 0), "ל״ג בעומר")
+
+        ' Tzom Shivah Asar B'Tammuz
+        AddHoliday(hc.ToDateTime(hYear, tammuz, 17, 0, 0, 0, 0), "שבעה עשר בתמוז")
+
+        ' Tisha B'Av
+        AddHoliday(hc.ToDateTime(hYear, av, 9, 0, 0, 0, 0), "תשעה באב")
+
+        ' Rosh Chodesh (each month)
+        Dim maxMonth = If(isLeap, 13, 12)
+        For m = 1 To maxMonth
+            Dim days = hc.GetDaysInMonth(hYear, m)
+            If days >= 30 Then
+                AddHoliday(hc.ToDateTime(hYear, m, 30, 0, 0, 0, 0), "ראש חודש")
+            End If
+
+            ' Add next month's 1st only if next month is valid
+            If m < maxMonth Then
+                AddHoliday(hc.ToDateTime(hYear, m + 1, 1, 0, 0, 0, 0), "ראש חודש")
+            End If
+        Next
+
+        ' Sukkot, Chol HaMoed, Shmini Atzeret
+        AddHoliday(hc.ToDateTime(hYear, tishrei, 14, 0, 0, 0, 0), "ערב סוכות")
+        AddHoliday(hc.ToDateTime(hYear, tishrei, 15, 0, 0, 0, 0), "סוכות")
+        For d = 16 To 20 : AddHoliday(hc.ToDateTime(hYear, tishrei, d, 0, 0, 0, 0), $"{IntToHebrewDay(d - 15)} חול המועד סוכות") : Next
+        AddHoliday(hc.ToDateTime(hYear, tishrei, 21, 0, 0, 0, 0), "הושענא רבה")
+        AddHoliday(hc.ToDateTime(hYear, tishrei, 22, 0, 0, 0, 0), "שמיני עצרת")
+        AddHoliday(hc.ToDateTime(hYear, tishrei, 23, 0, 0, 0, 0), "איסרו חג סוכות")
+
+        ' Tzom Gedaliah: 3 Tishrei, moved if Rosh Hashanah is Thu-Fri
+        Dim gedalia = hc.ToDateTime(hYear, tishrei, 3, 0, 0, 0, 0)
+        If gedalia.DayOfWeek = DayOfWeek.Saturday Then
+            gedalia = gedalia.AddDays(1)
+        End If
+        AddHoliday(gedalia, "צום גדליה")
+
+        ' Tzom Asarah B'Tevet (only moved if on Shabbat — and it never is for 10 Tevet)
+        AddHoliday(hc.ToDateTime(hYear, tevet, 10, 0, 0, 0, 0), "עשרה בטבת")
+
+        ' Taanit Esther: shifted if Friday/Saturday
+        Dim esther = hc.ToDateTime(hYear, adar2, 13, 0, 0, 0, 0)
+        If esther.DayOfWeek = DayOfWeek.Saturday Then
+            esther = esther.AddDays(-2) ' Moved to Thursday
+        ElseIf esther.DayOfWeek = DayOfWeek.Friday Then
+            esther = esther.AddDays(-1) ' Moved to Thursday
+        End If
+        AddHoliday(esther, "תענית אסתר")
+
+        ' Purim
+        AddHoliday(hc.ToDateTime(hYear, adar2, 14, 0, 0, 0, 0), "פורים")
+        Dim shushan = hc.ToDateTime(hYear, adar2, 15, 0, 0, 0, 0)
+        If shushan.DayOfWeek = DayOfWeek.Saturday Then
+            ' If Shushan Purim is on Shabbat, it's observed as Purim Meshulash,
+            ' where Megillah reading is on Friday, Matanot La'Evyonim on Sunday.
+            ' The specific "Shushan Purim" observance for Jerusalem shifts.
+            shushan = shushan.AddDays(1)
+            AddHoliday(shushan, "פורים משולש (ירושלים)") ' This refers to the observation of some aspects on Sunday
+        Else
+            AddHoliday(shushan, "שושן פורים")
+        End If
     End Sub
 
-    Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
-        Dim picker As New FormMonthPicker(currentHebrewYear, currentHebrewMonth)
-        AddHandler picker.MonthSelected, AddressOf SetSelectedMonth
-        picker.Location = Cursor.Position
-        picker.Show()
+    Private Sub AddModernHoliday(hc As HebrewCalendar, hYear As Integer)
+        ' Yom HaShoah (Holocaust Remembrance Day)
+        Dim nisan27 = hc.ToDateTime(hYear, GetHebrewMonthNumber("ניסן", hc.IsLeapYear(hYear)), 27, 0, 0, 0, 0)
+        Select Case nisan27.DayOfWeek
+            Case DayOfWeek.Friday
+                AddHoliday(nisan27.AddDays(-1), "יום השואה") ' Moved to Thursday
+            Case DayOfWeek.Sunday
+                AddHoliday(nisan27.AddDays(1), "יום השואה") ' Moved to Monday
+            Case Else
+                AddHoliday(nisan27, "יום השואה")
+        End Select
+
+        ' Yom HaZikaron (Memorial Day) + Yom HaAtzmaut (Independence Day)
+        Dim iyyar = GetHebrewMonthNumber("אייר", hc.IsLeapYear(hYear))
+        Dim pesach15Nisan = hc.ToDateTime(hYear, GetHebrewMonthNumber("ניסן", hc.IsLeapYear(hYear)), 15, 0, 0, 0, 0) ' 15 Nisan
+        Dim pdow = pesach15Nisan.DayOfWeek ' Day of week for 15th of Nisan
+
+        Dim dayIyyar As Integer
+        If pdow = DayOfWeek.Sunday Then ' If Pesach is Sunday, Yom HaAtzmaut is on Tuesday
+            dayIyyar = 2
+        ElseIf pdow = DayOfWeek.Saturday Then ' If Pesach is Saturday, Yom HaAtzmaut is on Tuesday
+            dayIyyar = 3
+        ElseIf hYear < 5764 AndAlso pdow = DayOfWeek.Tuesday Then ' Pre-5764 rule for Tuesday Pesach
+            dayIyyar = 5
+        ElseIf pdow = DayOfWeek.Tuesday Then ' Post-5764 rule for Tuesday Pesach (Yom HaAtzmaut on Thursday)
+            dayIyyar = 5
+        Else ' Default (Yom HaAtzmaut on 5th of Iyyar)
+            dayIyyar = 4
+        End If
+
+        AddHoliday(hc.ToDateTime(hYear, iyyar, dayIyyar, 0, 0, 0, 0), "יום הזיכרון")
+        AddHoliday(hc.ToDateTime(hYear, iyyar, dayIyyar + 1, 0, 0, 0, 0), "יום העצמאות")
+
+        ' Yom Yerushalayim (Jerusalem Day)
+        AddHoliday(hc.ToDateTime(hYear, iyyar, 28, 0, 0, 0, 0), "יום ירושלים")
     End Sub
 
-    Private Sub SetSelectedMonth(year As Integer, month As Integer)
-        currentHebrewYear = year
-        currentHebrewMonth = month
-        DrawCalendar(0)
+    Private Function GetHolidayName(gDate As Date) As List(Of String)
+        ' Retrieve holiday names for a given Gregorian date
+        If holidayMap.ContainsKey(gDate.Date) Then
+            Return holidayMap(gDate.Date)
+        End If
+        Return New List(Of String)
+    End Function
+
+    Private Sub AddHoliday(gDate As Date, name As String)
+        ' Add a holiday to the holiday map
+        Dim d = gDate.Date
+        If Not holidayMap.ContainsKey(d) Then
+            holidayMap(d) = New List(Of String)
+        End If
+        holidayMap(d).Add(name)
     End Sub
+
+    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+
+    End Sub
+    ' End Region
+
 End Class
 
+' Region: FormMonthPicker Class
+' This class represents the separate form for picking a Hebrew month and year.
 Public Class FormMonthPicker
     Inherits Form
 
@@ -265,33 +488,42 @@ Public Class FormMonthPicker
     Private hc As New HebrewCalendar()
 
     Public Sub New(currentYear As Integer, currentMonth As Integer)
+        ' Configure form appearance
         Me.FormBorderStyle = FormBorderStyle.FixedToolWindow
         Me.StartPosition = FormStartPosition.Manual
         Me.ShowInTaskbar = False
         Me.Width = 200
         Me.Height = 150
 
+        ' Initialize and position controls
         yearCombo = New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Left = 10, .Top = 10, .Width = 170}
         monthCombo = New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Left = 10, .Top = 40, .Width = 170}
         confirmButton = New Button With {.Text = "אישור", .Left = 10, .Top = 80, .Width = 170}
 
-        For y = 5700 To 5800
+        ' Populate year combo box
+        For y = 5700 To 5800 ' Range of years to display
             yearCombo.Items.Add(y)
         Next
         yearCombo.SelectedItem = currentYear
 
+        ' Attach event handlers
         AddHandler yearCombo.SelectedIndexChanged, AddressOf UpdateMonthList
         AddHandler confirmButton.Click, AddressOf ConfirmSelection
 
+        ' Add controls to the form
         Me.Controls.Add(yearCombo)
         Me.Controls.Add(monthCombo)
         Me.Controls.Add(confirmButton)
 
+        ' Initial population of month list and selection
         UpdateMonthList(Nothing, Nothing)
-        monthCombo.SelectedIndex = currentMonth - 1
+        If currentMonth >= 1 AndAlso currentMonth <= monthCombo.Items.Count Then
+            monthCombo.SelectedIndex = currentMonth - 1
+        End If
     End Sub
 
     Private Sub UpdateMonthList(sender As Object, e As EventArgs)
+        ' Update the month list based on the selected year (for leap years)
         If yearCombo.SelectedItem Is Nothing Then Return
         Dim year As Integer = CInt(yearCombo.SelectedItem)
         Dim isLeap = hc.IsLeapYear(year)
@@ -306,6 +538,7 @@ Public Class FormMonthPicker
     End Sub
 
     Private Sub ConfirmSelection(sender As Object, e As EventArgs)
+        ' Raise the MonthSelected event and close the form
         If yearCombo.SelectedItem Is Nothing OrElse monthCombo.SelectedIndex = -1 Then Return
         Dim y = CInt(yearCombo.SelectedItem)
         Dim m = monthCombo.SelectedIndex + 1
@@ -313,3 +546,4 @@ Public Class FormMonthPicker
         Me.Close()
     End Sub
 End Class
+' End Region

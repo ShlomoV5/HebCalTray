@@ -68,7 +68,7 @@ Partial Class Form1
         'Label2
         '
         Me.Label2.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label2.ForeColor = System.Drawing.Color.Red
+        Me.Label2.ForeColor = System.Drawing.Color.Blue
         Me.Label2.Location = New System.Drawing.Point(211, 69)
         Me.Label2.Name = "Label2"
         Me.Label2.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -80,7 +80,7 @@ Partial Class Form1
         'Label3
         '
         Me.Label3.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label3.ForeColor = System.Drawing.Color.Red
+        Me.Label3.ForeColor = System.Drawing.Color.Blue
         Me.Label3.Location = New System.Drawing.Point(176, 69)
         Me.Label3.Name = "Label3"
         Me.Label3.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -92,7 +92,7 @@ Partial Class Form1
         'Label4
         '
         Me.Label4.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label4.ForeColor = System.Drawing.Color.Red
+        Me.Label4.ForeColor = System.Drawing.Color.Blue
         Me.Label4.Location = New System.Drawing.Point(141, 69)
         Me.Label4.Name = "Label4"
         Me.Label4.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -104,7 +104,7 @@ Partial Class Form1
         'Label5
         '
         Me.Label5.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label5.ForeColor = System.Drawing.Color.Red
+        Me.Label5.ForeColor = System.Drawing.Color.Blue
         Me.Label5.Location = New System.Drawing.Point(106, 69)
         Me.Label5.Name = "Label5"
         Me.Label5.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -116,7 +116,7 @@ Partial Class Form1
         'Label6
         '
         Me.Label6.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label6.ForeColor = System.Drawing.Color.Red
+        Me.Label6.ForeColor = System.Drawing.Color.Blue
         Me.Label6.Location = New System.Drawing.Point(71, 69)
         Me.Label6.Name = "Label6"
         Me.Label6.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -128,7 +128,7 @@ Partial Class Form1
         'Label7
         '
         Me.Label7.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label7.ForeColor = System.Drawing.Color.Red
+        Me.Label7.ForeColor = System.Drawing.Color.Blue
         Me.Label7.Location = New System.Drawing.Point(36, 69)
         Me.Label7.Name = "Label7"
         Me.Label7.RightToLeft = System.Windows.Forms.RightToLeft.Yes
@@ -140,7 +140,7 @@ Partial Class Form1
         'Label8
         '
         Me.Label8.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.0!, CType((System.Drawing.FontStyle.Bold Or System.Drawing.FontStyle.Underline), System.Drawing.FontStyle), System.Drawing.GraphicsUnit.Point, CType(177, Byte))
-        Me.Label8.ForeColor = System.Drawing.Color.Red
+        Me.Label8.ForeColor = System.Drawing.Color.Blue
         Me.Label8.Location = New System.Drawing.Point(1, 69)
         Me.Label8.Name = "Label8"
         Me.Label8.RightToLeft = System.Windows.Forms.RightToLeft.Yes
