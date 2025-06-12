@@ -1,3 +1,6 @@
+
+
+
 name: Build and Release
 
 on:
@@ -28,14 +31,12 @@ jobs:
         Copy-Item -Recurse -Path "**\\bin\\Release\\*.exe" -Destination output
 
     - name: Upload artifact
-      if: github.event_name == 'pull_request'
       uses: actions/upload-artifact@v4
       with:
         name: HebTray-exe
         path: output
 
   release:
-    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
 
