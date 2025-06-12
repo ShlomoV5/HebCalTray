@@ -4,10 +4,16 @@
 name: Build and Release
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
 
 jobs:
   build:
