@@ -3,12 +3,12 @@
   "WorkspaceRootPath": "D:\\Repos\\HebTray\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|D:\\Repos\\HebTray\\form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|solutionrelative:form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+      "AbsoluteMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|D:\\Repos\\HebTray\\form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|solutionrelative:form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|d:\\repos\\hebtray\\form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|solutionrelative:form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|d:\\repos\\hebtray\\form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{CC704F7B-9CC9-4417-B078-75BAAC1577ED}|HebTray.vbproj|solutionrelative:form1.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,7 +18,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -26,25 +26,25 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "Form1.vb",
               "DocumentMoniker": "D:\\Repos\\HebTray\\Form1.vb",
               "RelativeDocumentMoniker": "Form1.vb",
-              "ToolTip": "D:\\Repos\\HebTray\\Form1.vb*",
-              "RelativeToolTip": "Form1.vb*",
-              "ViewState": "AgIAAMIBAAAAAAAAAAAiwNcBAAAAAAAAAAAAAA==",
+              "ToolTip": "D:\\Repos\\HebTray\\Form1.vb",
+              "RelativeToolTip": "Form1.vb",
+              "ViewState": "AgIAABYAAAAAAAAAAAA6wDsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2025-06-12T13:48:22.08Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Form1.vb [Design]",
               "DocumentMoniker": "D:\\Repos\\HebTray\\Form1.vb",
               "RelativeDocumentMoniker": "Form1.vb",
-              "ToolTip": "D:\\Repos\\HebTray\\Form1.vb [Design]*",
-              "RelativeToolTip": "Form1.vb [Design]*",
+              "ToolTip": "D:\\Repos\\HebTray\\Form1.vb [Design]",
+              "RelativeToolTip": "Form1.vb [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2025-06-12T13:48:18.846Z",
               "EditorCaption": " [Design]"

@@ -1,5 +1,9 @@
 ﻿Imports System.Globalization
+Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
+Imports Zmanim
+Imports Zmanim.TimeZone
+Imports Zmanim.Utilities
 
 Public Class Form1
     ' Region: Private Member Variables
@@ -29,6 +33,7 @@ Public Class Form1
     End Sub
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
         ' Initialize ToolTip for calendar days
         dayToolTips = New ToolTip() With {
             .AutoPopDelay = 5000,
@@ -50,6 +55,8 @@ Public Class Form1
         trayIcon = New NotifyIcon()
         trayIcon.Icon = SystemIcons.Information ' Consider using a custom icon if available
         trayIcon.Visible = True
+
+        AddHandler trayIcon.MouseUp, AddressOf TrayIcon_MouseUp
 
         ' Set up context menu for tray icon
         contextMenu1 = New ContextMenuStrip()
@@ -75,7 +82,11 @@ Public Class Form1
         ' Draw the calendar (called twice in original, one is sufficient for initial load)
         DrawCalendar(0)
     End Sub
-
+    Private Sub TrayIcon_MouseUp(sender As Object, e As MouseEventArgs)
+        If e.Button = MouseButtons.Left Then
+            ShowCalendar(Nothing, Nothing)
+        End If
+    End Sub
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
         ' Intercept user closing to hide the form instead of exiting
         If e.CloseReason = CloseReason.UserClosing Then
@@ -192,12 +203,25 @@ Public Class Form1
                 .Margin = New Padding(1)
             }
             Dim names = GetHolidayName(gDate)
+
+            Dim tooltipText As String = $"{gDate:dd/MM/yyyy}"
             If names.Count > 0 Then
                 lbl.ForeColor = Color.Red
-                dayToolTips.SetToolTip(lbl, $"{gDate:dd/MM/yyyy} - {String.Join(" / ", names)}")
-            Else
-                dayToolTips.SetToolTip(lbl, $"{gDate:dd/MM/yyyy}")
+                tooltipText &= $" - {String.Join(" / ", names)}"
             End If
+
+            If gDate.DayOfWeek = DayOfWeek.Saturday Then
+                Try
+                    Dim shabbatTimes = GetShabbatTimes(gDate)
+                    Dim candle = shabbatTimes.Item1
+                    Dim havdalah = shabbatTimes.Item2
+                    tooltipText &= $"{Environment.NewLine}כניסת שבת: {candle}, צאת שבת: {havdalah}"
+                Catch ex As Exception
+                    tooltipText &= $"{Environment.NewLine}(שגיאה בחישוב זמני שבת)"
+                End Try
+            End If
+
+            dayToolTips.SetToolTip(lbl, tooltipText)
 
             ' Highlight today's date
             Dim today As Date = Date.Today
@@ -473,6 +497,27 @@ Public Class Form1
     End Sub
     ' End Region
 
+    ' Region: Shabbat Times (Candle lighting and Havdalah via Zmanim.Net)
+    Private Function GetShabbatTimes(gDate As Date) As Tuple(Of String, String)
+        ' Step 1: Use the previous Friday if gDate is Shabbat
+        Dim friday As Date = If(gDate.DayOfWeek = DayOfWeek.Saturday, gDate.AddDays(-1), gDate)
+
+        ' Step 2: Wrap TimeZoneInfo into Zmanim's ITimeZone
+        Dim windowsTz = TimeZoneInfo.FindSystemTimeZoneById("Israel Standard Time")
+        Dim zmanimTz As Zmanim.TimeZone.ITimeZone = New Zmanim.TimeZone.WindowsTimeZone(windowsTz)
+
+        ' Step 3: Define GeoLocation
+        Dim geo = New GeoLocation("Jerusalem", 31.7683, 35.2137, zmanimTz)
+
+        ' Step 4: Get Zmanim
+        Dim cal = New ZmanimCalendar(friday, geo)
+        Dim candle As DateTime = cal.GetCandleLighting()
+        Dim havdalah As DateTime = cal.GetTzais()
+
+        ' Step 5: Return as formatted string tuple
+        Return Tuple.Create(candle.ToString("HH:mm"), havdalah.ToString("HH:mm"))
+    End Function
+    ' End Region
 End Class
 
 ' Region: FormMonthPicker Class
@@ -547,3 +592,4 @@ Public Class FormMonthPicker
     End Sub
 End Class
 ' End Region
+
